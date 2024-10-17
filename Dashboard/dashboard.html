@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Bin Data in Table</title>
+  <style>
+    /* General body styling */
+    body {
+      display: flex;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    /* Sidebar styling */
+    .sidebar {
+      width: 200px;
+      background-color: rgb(9, 66, 27);
+      align-items: center;
+      padding: 15px;
+      height: 100vh; /* Full height */
+      position: fixed; /* Fixed sidebar */
+    }
+
+    .sidebar h3 {
+      color: #aae2aa;
+      margin-top: 20px;
+    }
+
+    .sidebar ul {
+      list-style-type: none;
+      padding: 3px;
+    }
+
+    .sidebar li {
+      margin: 10px ;
+    }
+
+    .sidebar a {
+      text-decoration: none;
+      color: #aae2aa;
+      padding: 10px;
+      display: block; /* Block to fill the entire width */
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .sidebar a:hover {
+      background-color: #ddd; /* Highlight on hover */
+    }
+
+    /* Main content */
+    .main-content {
+      margin-left: 220px; /* Space for sidebar */
+      padding: 20px;
+      flex-grow: 1; /* Allow it to fill the remaining space */
+    }
+
+    /* Title and table styling */
+    .header { /*nom du site*/
+      background-color: #aae2aa;
+      padding: 20px;
+      border-bottom: 2px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: rgb(9, 66, 27);
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 15px;
+      color: rgb(9, 66, 27);
+    }
+
+    h1 { /*titre tableau*/
+      text-align: center;
+      margin-top: 40px;
+      font-size: 20px;
+      color: rgb(9, 66, 27);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    th, td { /*contour tableau*/
+      padding: 10px;
+      border: 1px solid #ddd;
+      color: rgb(9, 66, 27);
+    }
+
+    th {
+      background-color: #aae2aa;
+    }
+
+    /* No data message styling */
+    .no-data {
+      font-style: italic;
+      color: gray;
+    }
+
+    /* Circular progress bar styling (corrected) */
+    .circular-progress {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      left: 30%;
+      border-radius: 50%;
+      background: conic-gradient(#f4f4f4 0deg, #f4f4f4 360deg); /* Fixed background */
+    }
+
+    .circular-progress .progress-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .circular-progress::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40px; /* Inner circle size, adjust for thickness */
+      height: 40px;
+      background-color: white; /* Matches background to make the ring effect */
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h3>Floors</h3>
+        <ul id="floor-list"></ul>
+    </div>
+    
+    <div class="main-content">
+        <div class="header">
+            <h2><img src="images/sortify.png" alt="sortify" style="width: 90px; height: 90px;" /> Sort Today for a Cleaner Tomorrow</h2>
+            <div class="date-time" id="current-date-time"></div>
+        </div>
+
+    <h1>Fullness Percentage</h1>
+    <table id="data-table">
+      <thead>
+        <tr>
+          <th>Bin</th>
+          <th>Floor</th>
+          <th>Area</th>
+          <th><img src="images/paper bin.png" alt="Paper Bin" style="width: 65px; height: 90px;" /></th>
+          <th><img src="images/metal bin.png" alt="Metal Bin" style="width: 58px; height: 100px;" /></th>
+          <th><img src="images/plastic bin.png" alt="Plastic Bin" style="width: 65px; height: 90px;" /></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+      import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  
+      const firebaseConfig = {
+        apiKey: "AIzaSyArQ5XeGutcG-46kJVYQq1pa0mclb94zTM",
+        authDomain: "the-smart-waste-segregator.firebaseapp.com",
+        databaseURL: "https://the-smart-waste-segregator-default-rtdb.firebaseio.com",
+        projectId: "the-smart-waste-segregator",
+        storageBucket: "the-smart-waste-segregator.appspot.com",
+        messagingSenderId: "30326452209",
+        appId: "1:30326452209:web:cf7e07bb1902078866de50",
+        measurementId: "G-JXG7KFWE1C"
+      };
+  
+      const app = initializeApp(firebaseConfig);
+      const database = getDatabase(app);
+      const dbRef = ref(database, '/');
+  
+      // Add floors to the sidebar with indoor and outdoor options
+      function addFloorLinks(data) {
+          const floorList = document.getElementById('floor-list');
+          floorList.innerHTML = ''; // Clear existing list
+  
+          // Add "All Floors" option
+          const allFloorsItem = document.createElement('li');
+          allFloorsItem.innerHTML = `<a href="#" onclick="filterBins('', '', '')">All Floors</a>`;
+          floorList.appendChild(allFloorsItem);
+  
+          Object.keys(data).forEach(floor => {
+              const li = document.createElement('li');
+              li.innerHTML = `<a href="#" onclick="toggleArea('${floor}')">${floor}</a>`;
+              const indoorOutdoorList = document.createElement('ul');
+              indoorOutdoorList.style.display = 'none'; // Hide by default
+  
+              indoorOutdoorList.innerHTML = `
+                  <li><a href="#" onclick="filterBins('${floor}/indoor', '${floor}', 'Indoor')">Indoor</a></li>
+                  <li><a href="#" onclick="filterBins('${floor}/outdoor', '${floor}', 'Outdoor')">Outdoor</a></li>
+              `;
+              li.appendChild(indoorOutdoorList);
+              floorList.appendChild(li);
+          });
+      }
+  
+      // Toggle visibility of indoor/outdoor links
+      window.toggleArea = function(floor) {
+          const indoorOutdoorList = event.target.nextElementSibling;
+          indoorOutdoorList.style.display = indoorOutdoorList.style.display === 'none' ? 'block' : 'none';
+      };
+  
+      // Function to filter bins based on selected area
+      window.filterBins = function(areaPath, floorName, areaName) {
+          const tableBody = document.querySelector('#data-table tbody');
+          tableBody.innerHTML = ''; // Clear table contents before populating
+          const loadingRow = document.createElement('tr');
+          loadingRow.innerHTML = `<td colspan="6">Loading...</td>`; // Update to 6 columns
+          tableBody.appendChild(loadingRow); // Show loading message
+  
+          if (areaPath === '') { // If "All Floors" is selected
+              const allDataRef = ref(database, '/'); // Get all data from the database
+              onValue(allDataRef, (snapshot) => {
+                  const allData = snapshot.val();
+                  tableBody.innerHTML = ''; // Clear loading message
+                  if (allData) {
+                      const allBins = [];
+                      Object.keys(allData).forEach(floor => {
+                          Object.keys(allData[floor]).forEach(area => {
+                              const areaData = allData[floor][area];
+                              Object.keys(areaData).forEach(binKey => {
+                                  const binData = areaData[binKey];
+                                  allBins.push({
+                                      binKey: binKey,
+                                      floor: floor,
+                                      area: area,
+                                      metal: binData.Metal,
+                                      paper: binData.Paper,
+                                      plastic: binData.Plastic
+                                  });
+                              });
+                          });
+                      });
+                      populateTable(allBins);
+                  } else {
+                      const noDataRow = document.createElement('tr');
+                      noDataRow.innerHTML = `<td colspan="6" class="no-data">No data available</td>`;
+                      tableBody.appendChild(noDataRow);
+                  }
+              });
+          } else { // If a specific area is selected
+              const specificAreaRef = ref(database, areaPath);
+              onValue(specificAreaRef, (snapshot) => {
+                  const areaData = snapshot.val();
+                  tableBody.innerHTML = ''; // Clear loading message
+                  if (areaData) {
+                      const bins = Object.keys(areaData).map(binKey => {
+                          const binData = areaData[binKey];
+                          return {
+                              binKey: binKey,
+                              floor: floorName,
+                              area: areaName,
+                              metal: binData.Metal,
+                              paper: binData.Paper,
+                              plastic: binData.Plastic
+                          };
+                      });
+                      populateTable(bins);
+                  } else {
+                      const noDataRow = document.createElement('tr');
+                      noDataRow.innerHTML = `<td colspan="6" class="no-data">No data available</td>`;
+                      tableBody.appendChild(noDataRow);
+                  }
+              });
+          }
+      };
+  
+      // Populate the table with bin data
+function populateTable(bins) {
+    const tableBody = document.querySelector('#data-table tbody');
+    tableBody.innerHTML = ''; // Clear existing content
+    bins.forEach(bin => {
+        const row = document.createElement('tr');
+
+        // Determine colors based on percentages
+        const paperColor = bin.paper >= 80 ? 'red' : bin.paper >= 21 ? 'orange' : 'green';
+        const metalColor = bin.metal >= 80 ? 'red' : bin.metal >= 21 ? 'orange' : 'green';
+        const plasticColor = bin.plastic >= 80 ? 'red' : bin.plastic >= 21 ? 'orange' : 'green';
+
+        row.innerHTML = `
+            <td>${bin.binKey}</td>
+            <td>${bin.floor}</td>
+            <td>${bin.area}</td>
+            <td>
+                <div class="circular-progress" style="background: conic-gradient(${paperColor} ${bin.paper * 3.6}deg, #f4f4f4 0deg)">
+                    <div class="progress-value">${bin.paper}%</div>
+                </div>
+            </td>
+            <td>
+                <div class="circular-progress" style="background: conic-gradient(${metalColor} ${bin.metal * 3.6}deg, #f4f4f4 0deg)">
+                    <div class="progress-value">${bin.metal}%</div>
+                </div>
+            </td>
+            <td>
+                <div class="circular-progress" style="background: conic-gradient(${plasticColor} ${bin.plastic * 3.6}deg, #f4f4f4 0deg)">
+                    <div class="progress-value">${bin.plastic}%</div>
+                </div>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+      // Fetch data from Firebase
+      onValue(dbRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+              addFloorLinks(data);
+          }
+      });
+
+      // Default behavior: display all floors' bins when no option is selected
+      filterBins('', '', ''); // Display all floors' data by default on page load
+
+      // Display current date and time
+      function updateDateTime() {
+          const now = new Date();
+          const dateTimeString = now.toLocaleString();
+          document.getElementById('current-date-time').innerText = dateTimeString;
+      }
+
+      // Update the date and time every second
+      setInterval(updateDateTime, 1000);
+      updateDateTime();
+    </script>
+</body>
+</html>
