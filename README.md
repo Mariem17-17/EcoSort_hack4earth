@@ -75,4 +75,4 @@ This project focuses on a network of interconnected smart bins designed to optim
 
 ---
 
-[![Watch the video](https://i.sstatic.net/Vp2cE.png)](https://drive.google.com/drive/u/0/folders/1NlYntuLUdRY-Ps6QTxtTw8pZf1ylVE5s)
+[![Watch the video](https://github.com/Mariem17-17/EcoSort_hack4earth/blob/main/screenshot.png)](https://drive.google.com/drive/u/0/folders/1NlYntuLUdRY-Ps6QTxtTw8pZf1ylVE5s)
