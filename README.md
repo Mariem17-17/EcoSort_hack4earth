@@ -1,7 +1,3 @@
-Here’s the corrected version with your changes:
-
----
-
 # Smart Bin Network for Sustainable Urban Development
 
 ## Overview
